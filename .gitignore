@@ -1,0 +1,5 @@
+*.o
+*.out
+netguard
+build/
+*.pcap
