@@ -1,25 +1,37 @@
 #include "../include/parse.h"
+#include "../include/flow.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pcap.h>
+#include <sys/types.h>
+#include <signal.h>
+
+typedef struct {
+    flow_table *ft;
+    uint64_t count;
+} capture_context;
+
+static pcap_t *global_handle = NULL;
+static void on_sigint(int sig) {
+    (void)sig;
+    if (global_handle) {
+        pcap_breakloop(global_handle);
+    }
+}
 
 static void on_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
-    (void)args;
-
-    packet_info pkt;
-    if (parse_packet(packet, header->caplen, &pkt) != 0)
+    capture_context *ctx = (capture_context *)args;
+    packet_info p;
+    if (parse_packet(packet, header->caplen, &p) != 0) {
         return;
+    }
 
-    char src_ip[INET_ADDRSTRLEN], dst_ip[INET_ADDRSTRLEN];
-    ip_to_str(pkt.src_ip, src_ip, sizeof(src_ip));
-    ip_to_str(pkt.dst_ip, dst_ip, sizeof(dst_ip));
-
-    printf("%s  %s:%u -> %s:%u  (%u bytes)\n",
-           pkt.proto == PROTO_TCP ? "TCP" : "UDP",
-           src_ip, pkt.src_port,
-           dst_ip, pkt.dst_port,
-           pkt.length);
+    flow_table_update(ctx->ft, &p, header->ts.tv_sec);
+    ctx->count++;
+    if (ctx->count % 100 == 0) {
+        flow_table_print_top(ctx->ft, 10);
+    }
 }
 int main(int argc, char *argv[]) {
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -66,8 +78,18 @@ int main(int argc, char *argv[]) {
     }
     pcap_freecode(&filter);
 
+    flow_table ft;
+    flow_table_init(&ft);
+    capture_context ctx;
+    ctx.ft = &ft;
+    ctx.count = 0;
+
+    global_handle = handle;
+    signal(SIGINT, on_sigint);
+
     printf("Capturing...\n\n");
-    pcap_loop(handle, -1, on_packet, NULL);
+    pcap_loop(handle, -1, on_packet, (u_char *)&ctx);
+    flow_table_free(&ft);
     pcap_close(handle);
     return 0;
 }

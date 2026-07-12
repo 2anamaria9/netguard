@@ -18,7 +18,7 @@ honeypot services and models attacker behavior.
 
 ## Status
 - [x] Live capture + Ethernet/IP/TCP/UDP parsing
-- [ ] Flow tracking
+- [x] Flow tracking
 - [ ] Probabilistic data structures (Count-Min, HyperLogLog, Bloom)
 - [ ] Entropy / change-point anomaly detection
 - [ ] Honeypot services
