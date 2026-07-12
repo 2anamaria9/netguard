@@ -1,37 +1,26 @@
 #include "../include/parse.h"
 #include "../include/flow.h"
+#include "../include/engine.h"
+#include <pcap/pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pcap.h>
-#include <sys/types.h>
 #include <signal.h>
 
-typedef struct {
-    flow_table *ft;
-    uint64_t count;
-} capture_context;
-
-static pcap_t *global_handle = NULL;
 static void on_sigint(int sig) {
     (void)sig;
-    if (global_handle) {
-        pcap_breakloop(global_handle);
-    }
+    engine_stop();
 }
 
-static void on_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
-    capture_context *ctx = (capture_context *)args;
+void on_packet(u_char *user, const struct pcap_pkthdr *header, const u_char *packet) {
+    flow_table *ft = (flow_table *)user;
     packet_info p;
     if (parse_packet(packet, header->caplen, &p) != 0) {
         return;
     }
 
-    flow_table_update(ctx->ft, &p, header->ts.tv_sec);
-    ctx->count++;
-    if (ctx->count % 100 == 0) {
-        flow_table_print_top(ctx->ft, 10);
-    }
+    flow_table_update(ft, &p, header->ts.tv_sec);
 }
 int main(int argc, char *argv[]) {
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -77,18 +66,16 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     pcap_freecode(&filter);
+    if (pcap_setnonblock(handle, 1, errbuf) == -1) {
+        pcap_close(handle);
+        return 1;
+    }
 
     flow_table ft;
     flow_table_init(&ft);
-    capture_context ctx;
-    ctx.ft = &ft;
-    ctx.count = 0;
-
-    global_handle = handle;
     signal(SIGINT, on_sigint);
-
-    printf("Capturing...\n\n");
-    pcap_loop(handle, -1, on_packet, (u_char *)&ctx);
+    engine_run(handle, &ft, 5, 60);
+    
     flow_table_free(&ft);
     pcap_close(handle);
     return 0;
