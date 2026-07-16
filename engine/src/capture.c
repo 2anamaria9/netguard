@@ -1,6 +1,7 @@
 #include "../include/parse.h"
 #include "../include/flow.h"
 #include "../include/engine.h"
+#include "../include/sketch/cms.h"
 #include <pcap/pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,13 +15,14 @@ static void on_sigint(int sig) {
 }
 
 void on_packet(u_char *user, const struct pcap_pkthdr *header, const u_char *packet) {
-    flow_table *ft = (flow_table *)user;
+    packet_t *pkt = (packet_t *)user;
     packet_info p;
     if (parse_packet(packet, header->caplen, &p) != 0) {
         return;
     }
 
-    flow_table_update(ft, &p, header->ts.tv_sec);
+    flow_table_update(pkt->ft, &p, header->ts.tv_sec);
+    cms_add(pkt->c, &p.src_ip, sizeof(p.src_ip), 1);
 }
 int main(int argc, char *argv[]) {
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -73,10 +75,18 @@ int main(int argc, char *argv[]) {
 
     flow_table ft;
     flow_table_init(&ft);
+
+    count_min_sketch c;
+    if (cms_init(&c, 4, 2048) != 0) {
+        pcap_close(handle);
+        return 1;
+    }
+
     signal(SIGINT, on_sigint);
-    engine_run(handle, &ft, 5, 60);
+    engine_run(handle, &ft, &c, 5, 60);
     
     flow_table_free(&ft);
+    cms_free(&c);
     pcap_close(handle);
     return 0;
 }
