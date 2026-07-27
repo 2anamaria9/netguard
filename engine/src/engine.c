@@ -96,11 +96,12 @@ static void print_top_talkers(const flow_table *ft, const count_min_sketch *c, i
     }
 }
 
-int engine_run(pcap_t *handle, flow_table *ft, count_min_sketch *c, int report_interval, int flow_timeout) {
+int engine_run(pcap_t *handle, flow_table *ft, count_min_sketch *c, scan_detector_t *sd, int report_interval, int flow_timeout) {
     global_stop = 0;
     packet_t pkt;
     pkt.ft = ft;
     pkt.c = c;
+    pkt.sd = sd;
 
     int pfd = pcap_get_selectable_fd(handle);
     if (pfd == -1) {
@@ -157,8 +158,10 @@ int engine_run(pcap_t *handle, flow_table *ft, count_min_sketch *c, int report_i
                 time_t now = time(NULL);
                 flow_table_print_top(ft, 10);
                 print_top_talkers(ft, c, 5);
+                scan_detector_report(sd, 20);
                 expire_flows(ft, now, flow_timeout);
                 cms_reset(c);
+                scan_detector_reset(sd);
             }
         }
     }

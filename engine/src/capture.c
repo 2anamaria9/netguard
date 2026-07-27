@@ -2,6 +2,7 @@
 #include "../include/flow.h"
 #include "../include/engine.h"
 #include "../include/sketch/cms.h"
+#include "../include/scan_detect.h"
 #include <pcap/pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +24,7 @@ void on_packet(u_char *user, const struct pcap_pkthdr *header, const u_char *pac
 
     flow_table_update(pkt->ft, &p, header->ts.tv_sec);
     cms_add(pkt->c, &p.src_ip, sizeof(p.src_ip), 1);
+    scan_detector_add(pkt->sd, p.src_ip, p.dst_port);
 }
 int main(int argc, char *argv[]) {
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -82,11 +84,15 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    scan_detector_t sd;
+    scan_detector_init(&sd, 8);
+
     signal(SIGINT, on_sigint);
-    engine_run(handle, &ft, &c, 5, 60);
+    engine_run(handle, &ft, &c, &sd, 5, 60);
     
     flow_table_free(&ft);
     cms_free(&c);
+    scan_detector_free(&sd);
     pcap_close(handle);
     return 0;
 }
