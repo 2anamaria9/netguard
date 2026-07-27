@@ -5,5 +5,6 @@
 #include <stddef.h>
 
 uint64_t fnv1a(const void *data, size_t len, uint64_t seed);
+uint64_t hash_finalize(uint64_t h);
 
 #endif

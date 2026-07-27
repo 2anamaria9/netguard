@@ -15,3 +15,11 @@ uint64_t fnv1a(const void *data, size_t len, uint64_t seed) {
     return hash;
 }
 
+uint64_t hash_finalize(uint64_t h) {
+    h ^= h >> 33;
+    h *= 0xff51afd7ed558ccdULL;
+    h ^= h >> 33;
+    h *= 0xc4ceb9fe1a85ec53ULL;
+    h ^= h >> 33;
+    return h;
+}

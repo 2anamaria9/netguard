@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g -Iengine/include
-LDFLAGS = -lpcap
+LDFLAGS = -lpcap -lm
 SRC = $(wildcard engine/src/*.c) $(wildcard engine/src/*/*.c)
 OBJ = $(SRC:.c=.o)
 
