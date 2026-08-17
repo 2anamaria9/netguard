@@ -1,4 +1,4 @@
-#include "../include/entropy.h"
+#include "../include/detect/entropy.h"
 #include <stdio.h>
 
 int main(void) {

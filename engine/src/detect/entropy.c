@@ -1,4 +1,4 @@
-#include "../include/entropy.h"
+#include "../../include/detect/entropy.h"
 #include <math.h>
 #include <stdint.h>
 

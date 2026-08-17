@@ -3,3 +3,7 @@
 netguard
 build/
 *.pcap
+test_cusum
+test_entropy
+test_cms
+test_hll

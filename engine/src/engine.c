@@ -96,7 +96,7 @@ static void print_top_talkers(const flow_table *ft, const count_min_sketch *c, i
     }
 }
 
-int engine_run(pcap_t *handle, flow_table *ft, count_min_sketch *c, scan_detector_t *sd, int report_interval, int flow_timeout) {
+int engine_run(pcap_t *handle, flow_table *ft, count_min_sketch *c, scan_detector_t *sd, entropy_detector_t *ed, int report_interval, int flow_timeout) {
     global_stop = 0;
     packet_t pkt;
     pkt.ft = ft;
@@ -159,6 +159,7 @@ int engine_run(pcap_t *handle, flow_table *ft, count_min_sketch *c, scan_detecto
                 flow_table_print_top(ft, 10);
                 print_top_talkers(ft, c, 5);
                 scan_detector_report(sd, 20);
+                entropy_detector_run(ed, ft);
                 expire_flows(ft, now, flow_timeout);
                 cms_reset(c);
                 scan_detector_reset(sd);

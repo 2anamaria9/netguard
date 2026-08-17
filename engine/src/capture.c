@@ -3,6 +3,7 @@
 #include "../include/engine.h"
 #include "../include/sketch/cms.h"
 #include "../include/scan_detect.h"
+#include "../include/detect/entropy_detect.h"
 #include <pcap/pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,12 +88,16 @@ int main(int argc, char *argv[]) {
     scan_detector_t sd;
     scan_detector_init(&sd, 8);
 
+    entropy_detector_t ed;
+    entropy_detector_init(&ed);
+
     signal(SIGINT, on_sigint);
-    engine_run(handle, &ft, &c, &sd, 5, 60);
+    engine_run(handle, &ft, &c, &sd,&ed, 5, 60);
     
     flow_table_free(&ft);
     cms_free(&c);
     scan_detector_free(&sd);
+    entropy_detector_free(&ed);
     pcap_close(handle);
     return 0;
 }

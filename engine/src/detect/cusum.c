@@ -1,5 +1,4 @@
-#include "../include/cusum.h"
-#include <math.h>
+#include "../../include/detect/cusum.h"
 
 void cusum_init(cusum_t *c, double slack, double threshold, double alpha) {
     c->mean = 0;

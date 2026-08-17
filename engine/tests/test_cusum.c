@@ -1,4 +1,4 @@
-#include "../include/cusum.h"
+#include "../include/detect/cusum.h"
 #include <stdio.h>
 
 int main(void) {
