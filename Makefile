@@ -12,6 +12,6 @@ asan: LDFLAGS += -fsanitize=address
 asan: clean netguard
 
 clean:
-	rm -f engine/src/*.o netguard
+	rm -f engine/src/*.o engine/src/detect/*.o engine/src/sketch/*.o netguard
 
 .PHONY: clean asan

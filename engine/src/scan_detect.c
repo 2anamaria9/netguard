@@ -31,19 +31,39 @@ void scan_detector_add(scan_detector_t *sd, uint32_t src_ip, uint16_t dst_port) 
     hll_add(&entry->h, &dst_port, sizeof(uint16_t));
 }
 
-void scan_detector_report(const scan_detector_t *sd, uint64_t threshold) {
+void scan_detector_report(const scan_detector_t *sd, const count_min_sketch *c, uint64_t threshold) {
     src_entry *entry, *tmp;
     int ok = 0;
     HASH_ITER(hh, sd->sources, entry, tmp) {
         uint64_t ports = hll_estimate(&entry->h);
         if (ports >= threshold) {
             if (!ok) {
-                printf("--- Possible PORT SCANS (distinct ports >= %llu) ---\n", (unsigned long long)threshold);
+                printf("--- Possible SCANS / FLOODS (distinct ports >= %llu) ---\n", (unsigned long long)threshold);
                 ok = 1;
             }
+
+            uint64_t packets = cms_estimate(c, &entry->src_ip, sizeof(entry->src_ip));
+            double ratio = 0;
+            if (ports > 0) {
+                ratio = (double)packets / (double)ports;
+            }
+
             char s[INET_ADDRSTRLEN];
             ip_to_str(entry->src_ip, s, sizeof(s));
-            printf("  [!] %-16s ~%llu distinct ports\n", s, (unsigned long long)ports);
+            
+            if (ratio > 10) {
+                printf("  [!] %-16s ~%llu ports, %llu pkts (%.1f pkts/port) -> FLOOD\n", 
+                    s, 
+                    (unsigned long long)ports, 
+                    (unsigned long long)packets, 
+                    ratio);
+            } else {
+                printf("  [!] %-16s ~%llu ports, %llu pkts (%.1f pkts/port) -> SCAN\n", 
+                    s, 
+                    (unsigned long long)ports, 
+                    (unsigned long long)packets, 
+                    ratio);
+            }
         }
     }
 }

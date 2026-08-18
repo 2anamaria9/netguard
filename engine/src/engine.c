@@ -155,10 +155,16 @@ int engine_run(pcap_t *handle, flow_table *ft, count_min_sketch *c, scan_detecto
                 uint64_t exp;
                 ssize_t r = read(tfd, &exp, sizeof(exp));
                 (void)r;
+
                 time_t now = time(NULL);
+                char timebuf[16];
+                struct tm *tm_info = localtime(&now);
+                strftime(timebuf, sizeof(timebuf), "%H:%M:%S", tm_info);
+                printf("\n===== [%s] =====\n", timebuf);
+
                 flow_table_print_top(ft, 10);
                 print_top_talkers(ft, c, 5);
-                scan_detector_report(sd, 20);
+                scan_detector_report(sd, c, 20);
                 entropy_detector_run(ed, ft);
                 expire_flows(ft, now, flow_timeout);
                 cms_reset(c);

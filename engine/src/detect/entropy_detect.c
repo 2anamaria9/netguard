@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MIN_PKTS_FOR_ENTROPY 200
+
 int entropy_detector_init(entropy_detector_t *e) {
     e->port_counts = calloc(NUM_PORTS, sizeof(uint64_t));
     if (e->port_counts == NULL) {
@@ -16,10 +18,17 @@ int entropy_detector_init(entropy_detector_t *e) {
 
 void entropy_detector_run(entropy_detector_t *e, const flow_table *ft) {
     memset(e->port_counts, 0, NUM_PORTS * sizeof(uint64_t));
+    
+    uint64_t total = 0;
     flow_t *flow, *tmp;
     HASH_ITER(hh, ft->flows, flow, tmp) {
         uint16_t port = flow->key.dst_port;
         e->port_counts[port] += flow->packets; 
+        total = total + flow->packets;
+    }
+
+    if (total < MIN_PKTS_FOR_ENTROPY) {
+        return;
     }
 
     double ent = entropy(e->port_counts, NUM_PORTS);
@@ -31,7 +40,7 @@ void entropy_detector_run(entropy_detector_t *e, const flow_table *ft) {
     printf("\n");
 
     if (res == 1) {
-        printf("[!] ANOMALY: port entropy shifted UP (possible port scan)\n");
+        printf("[!] ANOMALY: port entropy shifted UP (port distribution anomaly)\n");
         cusum_reset(&e->sum);
     } else if (res == -1) {
         printf("[!] ANOMALY: port entropy shifted DOWN (possible DDoS)\n");
